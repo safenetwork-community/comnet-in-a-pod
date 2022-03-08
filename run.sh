@@ -5,9 +5,11 @@
 ADM_PATH=/root/.safe/cli/
 CLI_PATH=~/.local/share/safe/rf_cli/
 CON_NAME=root_node
+CP_PATH=~/safe
 IMAGE=rf-rootnode-ipv6:latest
 NETWORK_NAME=podman1
 NODE_PATH=/root/.safe/node
+NVIM_PATH=root_node:/root/.config/nvim
 NUM_NODES=15
 VERBOSE=-v
 
@@ -26,21 +28,19 @@ PUB_PORT_BASE=12000
 
 usage()
 {
-  echo "Usage: [-n num_nodes] [-v verbose]"
+  echo "Usage: [-c cp_path] [-n num_nodes] [-v verbose]"
   exit
 }
 
-while getopts 'n:v:?h' c
+while getopts 'c:n:v:?h' c
 do
   case $c in
+    c) CP_PATH=$OPTARG ;;
     n) NUM_NODES=$OPTARG ;;
     v) VERBOSE=$OPTARG ;;
     h|?) usage ;;
   esac
 done
-
-echo "num_nodes:"$NUM_NODES
-echo "verbose:"$VERBOSE
 
 if [ ! -d $CLI_PATH ]
 then
@@ -79,19 +79,19 @@ sudo podman run \
 
 sudo podman exec root_node safe networks add sjefolaht
 sudo podman exec root_node safe networks switch sjefolaht
-sudo podman cp ~/sur/keymappings.lua root_node:~/.config/nvim/keymappings.lua
+sudo podman cp $CP_PATH/keymappings.lua $NVIM_PATH/keymappings.lua
 
-for (( i = 1; i <= num_nodes; i++ ))
+for (( i = 1; i <= NUM_NODES; i++ ))
   do
-  CON_PORT = $(($CON_PORT_BASE + $i))
-  PUB_PORT = $(($PUB_PORT_BASE + $i))
-  sudo podman exec
-    -d $CON_NAME sn_node $VERBOSE
-    --idle-timeout-msec 5500
-    --keep-alive-interval-msec 4000
-    --skip-auto-port-forwarding
-    --local-addr $CON_IP:$CON_PORT
-    --public-addr $PUB_IP:$PUB_PORT
-    --log-dir $NODE_PATH/node_dir_$i
+  CON_PORT=$(($CON_PORT_BASE + $i))
+  PUB_PORT=$(($PUB_PORT_BASE + $i))
+  sudo podman exec \
+    -d $CON_NAME sn_node $VERBOSE \
+    --idle-timeout-msec 5500 \
+    --keep-alive-interval-msec 4000 \
+    --skip-auto-port-forwarding \
+    --local-addr $CON_IP:$CON_PORT \
+    --public-addr $PUB_IP:$PUB_PORT \
+    --log-dir $NODE_PATH/node_dir_$i \
     --root-dir $NODE_PATH/node_dir_$i
   done

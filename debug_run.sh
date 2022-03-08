@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./run.sh -n 15 -v -vv
+./run.sh -c ~/sur -n 15 -v -vv
