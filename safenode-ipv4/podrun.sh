@@ -164,16 +164,26 @@ sudo podman cp $KEYMAP_PATH_H $CON_NAME:$KEYMAP_PATH_C
 echo sudo podman exec -u root $CON_NAME cp ${CON_NETWORKS_PATH}/$CONFIGFILE_NAME $CON_VOL_PATH/networks
 sudo podman exec -u root $CON_NAME cp ${CON_NETWORKS_PATH}/$CONFIGFILE_NAME $CON_VOL_PATH/networks
 
-/usr/bin/nvim -e $HOST_CONFIG_PATH \
--c "%s/^\\[/\\[\\r/|%s/[^^]\\[/\\r\[\\r/g|%s/\\]/\\r\\]/g" \
--c "set expandtab" \
--c "set shiftwidth=4" \
--c 'exe "norm /\"${HOST_IP}:${HOST_PORT_BASE}\"\n$a,\<ESC>yy15p14\n$x"' \
--c "let g:lastcount=12000" \
--c 'exe "norm :fun PlusPlus()\nlet l:count=g:lastcount\nlet g:lastcount+=1\nreturn l:count\nendfun\n"' \
--c "%s/${HOST_IP}:${HOST_PORT_BASE}/\=printf('${HOST_IP}:%d', PlusPlus())" \
--c "norm gg=G" \
--c "wq!"
+# Expand node config file
+/usr/bin/nvim -es $HOST_CONFIG_PATH <<-EOF
+:set expandtab
+:set shiftwidth=2
+:let g:lastcount=${HOST_PORT}
+:fun PlusPlus()
+let l:count=g:lastcount
+let g:lastcount+=1
+return l:count
+endfun
+:s/\[\([^][]*\)/[\\r\1\\r/g|s/]/&\\r/
+/${HOST_IP}:${HOST_PORT}
+:norm \$a,
+:norm yy15p
+:norm 15\$x
+:norm gg
+:%s/${HOST_IP}:${HOST_PORT}/\=printf('${HOST_IP}:%d', PlusPlus())
+:norm gg=G
+:wq!
+EOF
 
 sudo lvim $HOST_CONFIG_PATH
 sudo rclone copy $HOST_CONFIG_PATH $RCLONE_PATH
@@ -222,6 +232,4 @@ for (( i = 1; i < NUM_NODES; i++ ))
   sudo podman cp $KEYMAP_PATH_H $CON_NAME:$KEYMAP_PATH_C
   done
 
-#!/bin/sh
 
-cat test.txt
