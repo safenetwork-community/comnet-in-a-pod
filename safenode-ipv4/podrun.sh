@@ -70,7 +70,6 @@ CONFIGFILE_NAME=${SN_NETWORK_NAME}_node_connection_info.config
 VOL_NAME=${HOST_NAME}_vol
 VOL_DIR=/var/lib/containers/storage/volumes/$VOL_NAME
 VOL_PATH=$VOL_DIR/_data
-CON_VOL_PATH=$SAFE_PATH/share
 CON_NETWORKS_PATH=$SAFE_PATH/cli/networks
 HOST_CONFIG_PATH=$VOL_PATH/networks/$CONFIGFILE_NAME
 
@@ -161,8 +160,8 @@ sudo podman run \
   -d $IMAGE_URL/$IMAGE
 
 sudo podman cp $KEYMAP_PATH_H $CON_NAME:$KEYMAP_PATH_C
-echo sudo podman exec -u root $CON_NAME cp ${CON_NETWORKS_PATH}/$CONFIGFILE_NAME $CON_VOL_PATH/networks
-sudo podman exec -u root $CON_NAME cp ${CON_NETWORKS_PATH}/$CONFIGFILE_NAME $CON_VOL_PATH/networks
+echo sudo podman exec -u root $CON_NAME cp ${CON_NETWORKS_PATH}/$CONFIGFILE_NAME $CON_VOL_PATH/networks/$CONFIGFILE_NAME 
+sudo podman exec -u root $CON_NAME cp ${CON_NETWORKS_PATH}/$CONFIGFILE_NAME $CON_VOL_PATH/networks/$CONFIGFILE_NAME 
 
 # Expand node config file
 /usr/bin/nvim -es $HOST_CONFIG_PATH <<-EOF
