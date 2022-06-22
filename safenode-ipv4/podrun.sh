@@ -133,6 +133,7 @@ echo sudo podman run \
   --name $CON_NAME \
   --pod $POD_NAME \
   --env NETWORK_NAME=$SN_NETWORK_NAME \
+  --env LOG_DIR=/home/admin/.safe/node/safenode \
   --env LOG_LEVEL=$LOG_LEVEL \
   --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
   --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
@@ -148,6 +149,7 @@ sudo podman run \
   --name $CON_NAME \
   --pod $POD_NAME \
   --env NETWORK_NAME=$SN_NETWORK_NAME \
+  --env LOG_DIR=/home/admin/.safe/node/safenode \
   --env LOG_LEVEL=$LOG_LEVEL \
   --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
   --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
@@ -160,6 +162,7 @@ sudo podman run \
   -d $IMAGE_URL/$IMAGE
 
 sudo podman cp $KEYMAP_PATH_H $CON_NAME:$KEYMAP_PATH_C
+
 echo sudo podman exec -u root $CON_NAME cp ${CON_NETWORKS_PATH}/$CONFIGFILE_NAME $CON_VOL_PATH/networks/$CONFIGFILE_NAME 
 sudo podman exec -u root $CON_NAME cp ${CON_NETWORKS_PATH}/$CONFIGFILE_NAME $CON_VOL_PATH/networks/$CONFIGFILE_NAME 
 
@@ -200,6 +203,7 @@ for (( i = 1; i < NUM_NODES; i++ ))
     --restart unless-stopped \
     --env NETWORK_NAME=$SN_NETWORK_NAME \
     --env LOG_LEVEL=$LOG_LEVEL \
+    --env LOG_DIR=/home/admin/.safe/node/safenode \
     --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
     --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
     --env KEEP_ALIVE_INTERVAL_MSEC=$KEEP_ALIVE_INTERVAL_MSEC \
@@ -215,6 +219,7 @@ for (( i = 1; i < NUM_NODES; i++ ))
     --pod $POD_NAME \
     --restart unless-stopped \
     --env NETWORK_NAME=$SN_NETWORK_NAME \
+    --env LOG_DIR=/home/admin/.safe/node/safenode \
     --env LOG_LEVEL=$LOG_LEVEL \
     --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
     --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
