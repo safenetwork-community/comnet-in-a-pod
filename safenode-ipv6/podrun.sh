@@ -13,7 +13,7 @@ LOG_LEVEL=debug
 
 ## SAFE APP PARAMETERS ##
 
-SN_NETWORK_NAME=sjefolaht_ipv4
+SN_NETWORK_NAME=sjefolaht
 CON_HOME=/home/admin
 SAFE_PATH=$CON_HOME/.safe
 
@@ -24,8 +24,8 @@ SKIP_AUTO_PORT_FORWARDING=true
 
 ## IP PARAMETERS ##
 
-CON_IPU=10.88.0.2
-CON_IP=$CON_IPU
+CON_IPU=::a58:2
+CON_IP=[$CON_IPU]
 CON_PORT=12000
 CON_PORT_BASE=${CON_PORT}
 CON_PORT_MAX=$(($CON_PORT_BASE + $NUM_NODES - 1))
@@ -36,7 +36,7 @@ else
   CON_PORT_RANGE=$CON_PORT_BASE-$CON_PORT_MAX
 fi
 
-HOST_IPU=$(ip -4 -o addr show up primary scope global | while read -r num dev fam addr rest; do echo ${addr%/*}; done | head -n 1)
+HOST_IPU=$(ip -6 -o addr show up primary scope global | while read -r num dev fam addr rest; do echo ${addr%/*}; done | head -n 1)
 HOST_IPR=\\[${HOST_IPU}\\]
 HOST_IP=[$HOST_IPU]
 
@@ -49,7 +49,7 @@ else
   HOST_PORT_RANGE=$HOST_PORT_BASE-$HOST_PORT_MAX
 fi
 
-PUB_IP=$(curl -s ifconfig.me)
+PUB_IP=$HOST_IP
 PUB_PORT=12000
 
 ## PODMAN PARAMETERS ##
@@ -69,12 +69,11 @@ KEYMAP_PATH_H=$HOST_CP_PATH/$KEYMAP_NAME
 ## VOLUME PARAMETERS ##
 
 CON_VOL_PATH=$SAFE_PATH/share
+CON_NETWORKS_PATH=$SAFE_PATH/cli/networks
 CONFIGFILE_NAME=${SN_NETWORK_NAME}_node_connection_info.config
 VOL_NAME=${HOST_NAME}_vol
 VOL_DIR=/var/lib/containers/storage/volumes/$VOL_NAME
 VOL_PATH=$VOL_DIR/_data
-CON_VOL_PATH=$SAFE_PATH/share
-CON_NETWORKS_PATH=$SAFE_PATH/cli/networks
 HOST_CONFIG_PATH=$VOL_PATH/networks/$CONFIGFILE_NAME
 
 ## RCLONE PARAMETERS ##
@@ -108,12 +107,9 @@ if [ ! -d $VOL_DIR ]
 fi
 
 # Get the real VIM file if soft link
-if [[ -L $KEYMAP_PATH_H && -e $KEYMAP_PATH_H ]]
-then
+if [[ -L $KEYMAP_PATH_H && -e $KEYMAP_PATH_H ]]; then
   KEYMAP_PATH_H=$(realpath $KEYMAP_PATH_H)
 fi
-
-# --add-host $HOST_NAME:$CON_IP \
 
 echo sudo podman pod create \
   --name $POD_NAME \
@@ -121,7 +117,7 @@ echo sudo podman pod create \
   --publish ${HOST_IP}:${HOST_PORT_RANGE}:${CON_PORT_RANGE}/udp \
   --replace \
   --userns auto \
-  --ip $CON_IPU \
+  --ip6 $CON_IPU \
   -v $VOL_NAME:$CON_VOL_PATH 
 
 sudo podman pod create \
@@ -130,13 +126,14 @@ sudo podman pod create \
   --publish ${HOST_IP}:${HOST_PORT_RANGE}:${CON_PORT_RANGE}/udp \
   --replace \
   --userns auto \
-  --ip $CON_IPU \
+  --ip6 $CON_IPU \
   -v $VOL_NAME:$CON_VOL_PATH
 
 echo sudo podman run \
   --name $CON_NAME \
   --pod $POD_NAME \
   --env NETWORK_NAME=$SN_NETWORK_NAME \
+  --env LOG_DIR=/home/admin/.safe/node/safenode \
   --env LOG_LEVEL=$LOG_LEVEL \
   --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
   --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
@@ -152,6 +149,7 @@ sudo podman run \
   --name $CON_NAME \
   --pod $POD_NAME \
   --env NETWORK_NAME=$SN_NETWORK_NAME \
+  --env LOG_DIR=/home/admin/.safe/node/safenode \
   --env LOG_LEVEL=$LOG_LEVEL \
   --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
   --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
@@ -164,8 +162,8 @@ sudo podman run \
   -d $IMAGE_URL/$IMAGE
 
 sudo podman cp $KEYMAP_PATH_H $CON_NAME:$KEYMAP_PATH_C
-echo sudo podman exec -u root $CON_NAME cp ${CON_NETWORKS_PATH}/$CONFIGFILE_NAME $CON_VOL_PATH/networks
-sudo podman exec -u root $CON_NAME cp ${CON_NETWORKS_PATH}/$CONFIGFILE_NAME $CON_VOL_PATH/networks
+echo sudo podman exec -u root $CON_NAME cp -r ${CON_NETWORKS_PATH} ${CON_VOL_PATH} 
+sudo podman exec -u root $CON_NAME cp -r ${CON_NETWORKS_PATH} ${CON_VOL_PATH} 
 
 # Expand node config file if join nodes.
 if [ $NUM_JNODES -ne 0 ]; then
@@ -194,7 +192,6 @@ endfun
 EOF
 fi
 
-sudo lvim $HOST_CONFIG_PATH
 sudo rclone copy $HOST_CONFIG_PATH $RCLONE_PATH
 
 for (( i = 1; i < NUM_NODES; i++ ))
@@ -209,6 +206,7 @@ for (( i = 1; i < NUM_NODES; i++ ))
     --pod $POD_NAME \
     --restart unless-stopped \
     --env NETWORK_NAME=$SN_NETWORK_NAME \
+    --env LOG_DIR=/home/admin/.safe/node/safenode \
     --env LOG_LEVEL=$LOG_LEVEL \
     --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
     --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
@@ -225,6 +223,7 @@ for (( i = 1; i < NUM_NODES; i++ ))
     --pod $POD_NAME \
     --restart unless-stopped \
     --env NETWORK_NAME=$SN_NETWORK_NAME \
+    --env LOG_DIR=/home/admin/.safe/node/safenode \
     --env LOG_LEVEL=$LOG_LEVEL \
     --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
     --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
