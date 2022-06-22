@@ -6,6 +6,7 @@ CON_NAME=root_node
 IMAGE=safenode:latest
 IMAGE_URL=ghcr.io/safenetwork-community
 NUM_NODES=16
+NUM_JNODES=$(($NUM_NODES-1))
 
 # error, warn, info, debug, trace
 LOG_LEVEL=debug
@@ -23,7 +24,8 @@ SKIP_AUTO_PORT_FORWARDING=true
 
 ## IP PARAMETERS ##
 
-CON_IP=10.88.0.2
+CON_IPU=10.88.0.2
+CON_IP=$CON_IPU
 CON_PORT=12000
 CON_PORT_BASE=${CON_PORT}
 CON_PORT_MAX=$(($CON_PORT_BASE + $NUM_NODES - 1))
@@ -34,7 +36,10 @@ else
   CON_PORT_RANGE=$CON_PORT_BASE-$CON_PORT_MAX
 fi
 
-HOST_IP=$(ip -4 -o addr show up primary scope global | while read -r num dev fam addr rest; do echo ${addr%/*}; done | head -n 1)
+HOST_IPU=$(ip -4 -o addr show up primary scope global | while read -r num dev fam addr rest; do echo ${addr%/*}; done | head -n 1)
+HOST_IPR=\\[${HOST_IPU}\\]
+HOST_IP=[$HOST_IPU]
+
 HOST_PORT_BASE=12000
 HOST_PORT_MAX=$(($HOST_PORT_BASE + $NUM_NODES - 1))
 
@@ -43,8 +48,6 @@ if [ $HOST_PORT_MAX -eq $HOST_PORT_BASE ]; then
 else
   HOST_PORT_RANGE=$HOST_PORT_BASE-$HOST_PORT_MAX
 fi
-
-
 
 PUB_IP=$(curl -s ifconfig.me)
 PUB_PORT=12000
@@ -70,6 +73,7 @@ CONFIGFILE_NAME=${SN_NETWORK_NAME}_node_connection_info.config
 VOL_NAME=${HOST_NAME}_vol
 VOL_DIR=/var/lib/containers/storage/volumes/$VOL_NAME
 VOL_PATH=$VOL_DIR/_data
+CON_VOL_PATH=$SAFE_PATH/share
 CON_NETWORKS_PATH=$SAFE_PATH/cli/networks
 HOST_CONFIG_PATH=$VOL_PATH/networks/$CONFIGFILE_NAME
 
@@ -117,7 +121,7 @@ echo sudo podman pod create \
   --publish ${HOST_IP}:${HOST_PORT_RANGE}:${CON_PORT_RANGE}/udp \
   --replace \
   --userns auto \
-  --ip $CON_IP \
+  --ip $CON_IPU \
   -v $VOL_NAME:$CON_VOL_PATH 
 
 sudo podman pod create \
@@ -126,14 +130,13 @@ sudo podman pod create \
   --publish ${HOST_IP}:${HOST_PORT_RANGE}:${CON_PORT_RANGE}/udp \
   --replace \
   --userns auto \
-  --ip $CON_IP \
+  --ip $CON_IPU \
   -v $VOL_NAME:$CON_VOL_PATH
 
 echo sudo podman run \
   --name $CON_NAME \
   --pod $POD_NAME \
   --env NETWORK_NAME=$SN_NETWORK_NAME \
-  --env LOG_DIR=/home/admin/.safe/node/safenode \
   --env LOG_LEVEL=$LOG_LEVEL \
   --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
   --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
@@ -149,7 +152,6 @@ sudo podman run \
   --name $CON_NAME \
   --pod $POD_NAME \
   --env NETWORK_NAME=$SN_NETWORK_NAME \
-  --env LOG_DIR=/home/admin/.safe/node/safenode \
   --env LOG_LEVEL=$LOG_LEVEL \
   --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
   --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
@@ -162,30 +164,35 @@ sudo podman run \
   -d $IMAGE_URL/$IMAGE
 
 sudo podman cp $KEYMAP_PATH_H $CON_NAME:$KEYMAP_PATH_C
+echo sudo podman exec -u root $CON_NAME cp ${CON_NETWORKS_PATH}/$CONFIGFILE_NAME $CON_VOL_PATH/networks
+sudo podman exec -u root $CON_NAME cp ${CON_NETWORKS_PATH}/$CONFIGFILE_NAME $CON_VOL_PATH/networks
 
-echo sudo podman exec -u root $CON_NAME cp ${CON_NETWORKS_PATH}/$CONFIGFILE_NAME $CON_VOL_PATH/networks/$CONFIGFILE_NAME 
-sudo podman exec -u root $CON_NAME cp ${CON_NETWORKS_PATH}/$CONFIGFILE_NAME $CON_VOL_PATH/networks/$CONFIGFILE_NAME 
+# Expand node config file if join nodes.
+if [ $NUM_JNODES -ne 0 ]; then
 
-# Expand node config file
-/usr/bin/nvim -es $HOST_CONFIG_PATH <<-EOF
+  sudo /usr/bin/nvim -es $HOST_CONFIG_PATH <<-EOF
 :set expandtab
 :set shiftwidth=2
-:let g:lastcount=${HOST_PORT}
+:let g:lastcount=${HOST_PORT_BASE}
 :fun PlusPlus()
 let l:count=g:lastcount
 let g:lastcount+=1
 return l:count
 endfun
-:s/\[\([^][]*\)/[\\r\1\\r/g|s/]/&\\r/
-/${HOST_IP}:${HOST_PORT}
+/\(^\|"\)\@<![
+:%s//\r&\r/g
+/\(\("\)\@<=]\|]$\)
+:%s//\r&/g
+/${HOST_IPR}:${HOST_PORT_BASE}
 :norm \$a,
-:norm yy15p
-:norm 15\$x
+:norm yy${NUM_JNODES}p
+:norm ${NUM_JNODES}\$x
 :norm gg
-:%s/${HOST_IP}:${HOST_PORT}/\=printf('${HOST_IP}:%d', PlusPlus())
+:%s/${HOST_IPR}:${HOST_PORT_BASE}/\=printf('${HOST_IP}:%d', PlusPlus())
 :norm gg=G
 :wq!
 EOF
+fi
 
 sudo lvim $HOST_CONFIG_PATH
 sudo rclone copy $HOST_CONFIG_PATH $RCLONE_PATH
@@ -203,7 +210,6 @@ for (( i = 1; i < NUM_NODES; i++ ))
     --restart unless-stopped \
     --env NETWORK_NAME=$SN_NETWORK_NAME \
     --env LOG_LEVEL=$LOG_LEVEL \
-    --env LOG_DIR=/home/admin/.safe/node/safenode \
     --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
     --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
     --env KEEP_ALIVE_INTERVAL_MSEC=$KEEP_ALIVE_INTERVAL_MSEC \
@@ -219,7 +225,6 @@ for (( i = 1; i < NUM_NODES; i++ ))
     --pod $POD_NAME \
     --restart unless-stopped \
     --env NETWORK_NAME=$SN_NETWORK_NAME \
-    --env LOG_DIR=/home/admin/.safe/node/safenode \
     --env LOG_LEVEL=$LOG_LEVEL \
     --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
     --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
