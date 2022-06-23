@@ -37,7 +37,6 @@ else
 fi
 
 HOST_IPU=$(ip -6 -o addr show up primary scope global | while read -r num dev fam addr rest; do echo ${addr%/*}; done | head -n 1)
-HOST_IPR=\\[${HOST_IPU}\\]
 HOST_IP=[$HOST_IPU]
 
 HOST_PORT_BASE=12000
@@ -49,7 +48,8 @@ else
   HOST_PORT_RANGE=$HOST_PORT_BASE-$HOST_PORT_MAX
 fi
 
-PUB_IP=$HOST_IP
+PUB_IP=[${HOST_IP}]
+PUB_IPR=\\[${HOST_IPU}\\]
 PUB_PORT=12000
 
 ## PODMAN PARAMETERS ##
@@ -171,7 +171,7 @@ if [ $NUM_JNODES -ne 0 ]; then
   sudo /usr/bin/nvim -es $HOST_CONFIG_PATH <<-EOF
 :set expandtab
 :set shiftwidth=2
-:let g:lastcount=${HOST_PORT_BASE}
+:let g:lastcount=${PUB_PORT}
 :fun PlusPlus()
 let l:count=g:lastcount
 let g:lastcount+=1
@@ -181,12 +181,12 @@ endfun
 :%s//\r&\r/g
 /\(\("\)\@<=]\|]$\)
 :%s//\r&/g
-/${HOST_IPR}:${HOST_PORT_BASE}
+/${PUB_IPR}:${PUB_PORT}
 :norm \$a,
 :norm yy${NUM_JNODES}p
 :norm ${NUM_JNODES}\$x
 :norm gg
-:%s/${HOST_IPR}:${HOST_PORT_BASE}/\=printf('${HOST_IP}:%d', PlusPlus())
+:%s/${PUB_IPR}:${PUB_PORT}/\=printf('${PUB_IP}:%d', PlusPlus())
 :norm gg=G
 :wq!
 EOF

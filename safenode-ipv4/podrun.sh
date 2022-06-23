@@ -37,8 +37,7 @@ else
 fi
 
 HOST_IPU=$(ip -4 -o addr show up primary scope global | while read -r num dev fam addr rest; do echo ${addr%/*}; done | head -n 1)
-HOST_IPR=\\[${HOST_IPU}\\]
-HOST_IP=[$HOST_IPU]
+HOST_IP=$HOST_IPU
 
 HOST_PORT_BASE=12000
 HOST_PORT_MAX=$(($HOST_PORT_BASE + $NUM_NODES - 1))
@@ -50,6 +49,7 @@ else
 fi
 
 PUB_IP=$(curl -s ifconfig.me)
+PUB_IPR=$PUB_IP
 PUB_PORT=12000
 
 ## PODMAN PARAMETERS ##
@@ -83,7 +83,7 @@ RCLONE_PATH=nwazj://rezosur/koqfig
 
 usage()
 {
-  echo "Usage: [-c cp_path] [-n num_nodes] [-v log_level]"
+  echo "Usage: [-c cp_path] [-f configfile_name] [-l vimfile_name] [-n num_nodes] [-s network_name] [-r rclone_path] [-v log_level]"
   exit
 }
 
@@ -137,6 +137,7 @@ echo sudo podman run \
   --name $CON_NAME \
   --pod $POD_NAME \
   --env NETWORK_NAME=$SN_NETWORK_NAME \
+  --env LOG_DIR=/home/admin/.safe/node/safenode \
   --env LOG_LEVEL=$LOG_LEVEL \
   --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
   --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
@@ -152,6 +153,7 @@ sudo podman run \
   --name $CON_NAME \
   --pod $POD_NAME \
   --env NETWORK_NAME=$SN_NETWORK_NAME \
+  --env LOG_DIR=/home/admin/.safe/node/safenode \
   --env LOG_LEVEL=$LOG_LEVEL \
   --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
   --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
@@ -173,7 +175,7 @@ if [ $NUM_JNODES -ne 0 ]; then
   sudo /usr/bin/nvim -es $HOST_CONFIG_PATH <<-EOF
 :set expandtab
 :set shiftwidth=2
-:let g:lastcount=${HOST_PORT_BASE}
+:let g:lastcount=${PUB_PORT}
 :fun PlusPlus()
 let l:count=g:lastcount
 let g:lastcount+=1
@@ -183,12 +185,12 @@ endfun
 :%s//\r&\r/g
 /\(\("\)\@<=]\|]$\)
 :%s//\r&/g
-/${HOST_IPR}:${HOST_PORT_BASE}
+/${PUB_IPR}:${PUB_PORT}
 :norm \$a,
 :norm yy${NUM_JNODES}p
 :norm ${NUM_JNODES}\$x
 :norm gg
-:%s/${HOST_IPR}:${HOST_PORT_BASE}/\=printf('${HOST_IP}:%d', PlusPlus())
+:%s/${PUB_IPR}:${PUB_PORT}/\=printf('${PUB_IP}:%d', PlusPlus())
 :norm gg=G
 :wq!
 EOF
@@ -209,6 +211,7 @@ for (( i = 1; i < NUM_NODES; i++ ))
     --pod $POD_NAME \
     --restart unless-stopped \
     --env NETWORK_NAME=$SN_NETWORK_NAME \
+    --env LOG_DIR=/home/admin/.safe/node/safenode \
     --env LOG_LEVEL=$LOG_LEVEL \
     --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
     --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
@@ -225,6 +228,7 @@ for (( i = 1; i < NUM_NODES; i++ ))
     --pod $POD_NAME \
     --restart unless-stopped \
     --env NETWORK_NAME=$SN_NETWORK_NAME \
+     --env LOG_DIR=/home/admin/.safe/node/safenode \
     --env LOG_LEVEL=$LOG_LEVEL \
     --env SKIP_AUTO_PORT_FORWARDING=$SKIP_AUTO_PORT_FORWARDING \
     --env IDLE_TIMEOUT_MSEC=$IDLE_TIMEOUT_MSEC \
@@ -238,6 +242,3 @@ for (( i = 1; i < NUM_NODES; i++ ))
 
   sudo podman cp $KEYMAP_PATH_H $CON_NAME:$KEYMAP_PATH_C
   done
-
-
-
