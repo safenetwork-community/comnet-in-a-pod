@@ -1,4 +1,4 @@
-#!bin/bash
+#!/bin/bash
 
 POD_NAME=sjefolaht_ipv4
 

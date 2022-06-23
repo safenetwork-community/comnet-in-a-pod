@@ -48,7 +48,7 @@ else
   HOST_PORT_RANGE=$HOST_PORT_BASE-$HOST_PORT_MAX
 fi
 
-PUB_IP=[${HOST_IP}]
+PUB_IP=$HOST_IP
 PUB_IPR=\\[${HOST_IPU}\\]
 PUB_PORT=12000
 
@@ -162,6 +162,7 @@ sudo podman run \
   -d $IMAGE_URL/$IMAGE
 
 sudo podman cp $KEYMAP_PATH_H $CON_NAME:$KEYMAP_PATH_C
+sleep 1
 echo sudo podman exec -u root $CON_NAME cp -r ${CON_NETWORKS_PATH} ${CON_VOL_PATH} 
 sudo podman exec -u root $CON_NAME cp -r ${CON_NETWORKS_PATH} ${CON_VOL_PATH} 
 
