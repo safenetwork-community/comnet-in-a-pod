@@ -5,7 +5,7 @@
 CON_NAME=root_node
 IMAGE=safenode:latest
 IMAGE_URL=ghcr.io/safenetwork-community
-NUM_NODES=16
+NUM_NODES=2
 NUM_JNODES=$(($NUM_NODES-1))
 
 # error, warn, info, debug, trace
@@ -14,6 +14,7 @@ LOG_LEVEL=debug
 ## SAFE APP PARAMETERS ##
 
 SN_NETWORK_NAME=sjefolaht
+SN_KEY_PREFIX=klik
 CON_HOME=/home/admin
 SAFE_PATH=$CON_HOME/.safe
 
@@ -24,7 +25,7 @@ SKIP_AUTO_PORT_FORWARDING=true
 
 ## IP PARAMETERS ##
 
-CON_IPU=::a58:2
+CON_IPU=fdf0:3ef:2f04:306a:0000:0000:0000:2
 CON_IP=[$CON_IPU]
 CON_PORT=12000
 CON_PORT_BASE=${CON_PORT}
@@ -69,12 +70,12 @@ KEYMAP_PATH_H=$HOST_CP_PATH/$KEYMAP_NAME
 ## VOLUME PARAMETERS ##
 
 CON_VOL_PATH=$SAFE_PATH/share
-CON_NETWORKS_PATH=$SAFE_PATH/cli/networks
-CONFIGFILE_NAME=${SN_NETWORK_NAME}_node_connection_info.config
+CON_NKEYS_PATH=$SAFE_PATH/prefix_maps
+NKEY_NAME=${SN_KEY_PREFIX}_${SN_NETWORK_NAME}
 VOL_NAME=${HOST_NAME}_vol
 VOL_DIR=/var/lib/containers/storage/volumes/$VOL_NAME
 VOL_PATH=$VOL_DIR/_data
-HOST_CONFIG_PATH=$VOL_PATH/networks/$CONFIGFILE_NAME
+HOST_CONFIG_PATH=$VOL_PATH/$NKEY_NAME
 
 ## RCLONE PARAMETERS ##
 
@@ -90,7 +91,7 @@ while getopts 'c:f:l:n:s:r:v:?h' c
 do
   case $c in
     c) CP_PATH=$OPTARG ;;
-    f) CONFIGFILE_NAME=$OPTARG ;;
+    f) NKEY_NAME=$OPTARG ;;
     l) VIMFILE_NAME=$OPTARG ;;
     n) NUM_NODES=$OPTARG ;;
     s) NETWORK_NAME=$OPTARG ;;
@@ -162,9 +163,8 @@ sudo podman run \
   -d $IMAGE_URL/$IMAGE
 
 sudo podman cp $KEYMAP_PATH_H $CON_NAME:$KEYMAP_PATH_C
-sleep 1
-echo sudo podman exec -u root $CON_NAME cp -r ${CON_NETWORKS_PATH} ${CON_VOL_PATH} 
-sudo podman exec -u root $CON_NAME cp -r ${CON_NETWORKS_PATH} ${CON_VOL_PATH} 
+echo sudo podman exec -u root $CON_NAME cp ${CON_NKEYS_PATH}/$NKEY_NAME $CON_VOL_PATH
+sudo podman exec -u root $CON_NAME cp ${CON_NKEYS_PATH}/$NKEY_NAME $CON_VOL_PATH
 
 # Expand node config file if join nodes.
 if [ $NUM_JNODES -ne 0 ]; then
@@ -235,8 +235,6 @@ for (( i = 1; i < NUM_NODES; i++ ))
     --env PUB_PORT=$PUB_PORT \
     --env FIRST=false \
     -d $IMAGE_URL/$IMAGE
-
-  #sudo podman network connect --ip $CON_IP podman join_node_$i
 
   sudo podman cp $KEYMAP_PATH_H $CON_NAME:$KEYMAP_PATH_C
   done
