@@ -11,6 +11,21 @@ CF_NETWORKS_PATH_CON=$SN_DIR/cli/networks/$CONFIG_FILENAME
 CF_SHARE_PATH_CON=$SN_DIR/share/networks/$CONFIG_FILENAME
 CON_PATH_CON=$SN_DIR/node/node_connection_info.config
 
+usage()
+{
+  echo "Usage: [-u user] container"
+  exit
+}
+
+while getopts 'u:?h' c
+do
+  case $c in
+    u) USER=$OPTARG ;;
+    h|?) usage ;;
+  esac
+done
+shift $(($OPTIND - 1))
+
 # First argument is root node if empty
 CON_NAME=$1
 if [ -z $CON_NAME ]; then

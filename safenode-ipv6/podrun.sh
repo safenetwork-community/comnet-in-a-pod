@@ -5,7 +5,7 @@
 CON_NAME=root_node
 IMAGE=safenode:latest
 IMAGE_URL=ghcr.io/safenetwork-community
-NUM_NODES=16
+NUM_NODES=1
 NUM_JNODES=$(($NUM_NODES-1))
 
 # error, warn, info, debug, trace
@@ -76,9 +76,9 @@ VOL_DIR=/var/lib/containers/storage/volumes/$VOL_NAME
 VOL_PATH=$VOL_DIR/_data
 HOST_CONFIG_PATH=$VOL_PATH/networks/$CONFIGFILE_NAME
 
-## RCLONE PARAMETERS ##
+## YUNOHOST PARAMETERS ##
 
-RCLONE_PATH=nwazj://rezosur/koqfig
+YNH_PATH=admin@yropeehn.eu.org:/var/www/my_webapp/www/kle/$CONFIGFILE_NAME
 
 usage()
 {
@@ -94,7 +94,7 @@ do
     l) VIMFILE_NAME=$OPTARG ;;
     n) NUM_NODES=$OPTARG ;;
     s) NETWORK_NAME=$OPTARG ;;
-    r) RCLONE_PATH=$OPTARG ;;
+    r) YNH_PATH=$OPTARG ;;
     v) LOG_LEVEL=$OPTARG ;;
     h|?) usage ;;
   esac
@@ -167,33 +167,33 @@ echo sudo podman exec -u root $CON_NAME cp -r ${CON_NETWORKS_PATH} ${CON_VOL_PAT
 sudo podman exec -u root $CON_NAME cp -r ${CON_NETWORKS_PATH} ${CON_VOL_PATH} 
 
 # Expand node config file if join nodes.
-if [ $NUM_JNODES -ne 0 ]; then
+#if [ $NUM_JNODES -ne 0 ]; then
 
-  sudo /usr/bin/nvim -es $HOST_CONFIG_PATH <<-EOF
-:set expandtab
-:set shiftwidth=2
-:let g:lastcount=${PUB_PORT}
-:fun PlusPlus()
-let l:count=g:lastcount
-let g:lastcount+=1
-return l:count
-endfun
-/\(^\|"\)\@<![
-:%s//\r&\r/g
-/\(\("\)\@<=]\|]$\)
-:%s//\r&/g
-/${PUB_IPR}:${PUB_PORT}
-:norm \$a,
-:norm yy${NUM_JNODES}p
-:norm ${NUM_JNODES}\$x
-:norm gg
-:%s/${PUB_IPR}:${PUB_PORT}/\=printf('${PUB_IP}:%d', PlusPlus())
-:norm gg=G
-:wq!
-EOF
-fi
+#  sudo /usr/bin/nvim -es $HOST_CONFIG_PATH <<-EOF
+#:set expandtab
+#:set shiftwidth=2
+#:let g:lastcount=${PUB_PORT}
+#:fun PlusPlus()
+#let l:count=g:lastcount
+#let g:lastcount+=1
+#return l:count
+#endfun
+#/\(^\|"\)\@<![
+#:%s//\r&\r/g
+#/\(\("\)\@<=]\|]$\)
+#:%s//\r&/g
+#/${PUB_IPR}:${PUB_PORT}
+#:norm \$a,
+#:norm yy${NUM_JNODES}p
+#:norm ${NUM_JNODES}\$x
+#:norm gg
+#:%s/${PUB_IPR}:${PUB_PORT}/\=printf('${PUB_IP}:%d', PlusPlus())
+#:norm gg=G
+#:wq!
+#EOF
+#fi
 
-sudo rclone copy $HOST_CONFIG_PATH $RCLONE_PATH
+sudo scp $HOST_CONFIG_PATH $YNH_PATH
 
 for (( i = 1; i < NUM_NODES; i++ ))
   do
