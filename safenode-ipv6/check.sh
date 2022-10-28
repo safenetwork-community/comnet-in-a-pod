@@ -1,6 +1,6 @@
 #!/bin/bash
 
-USER=root
+USER=admin
 SN_NETWORK_NAME=sjefolaht
 VOL_NAME=comnet_${SN_NETWORK_NAME}_vol
 HOME_DIR=/home/admin
@@ -10,6 +10,22 @@ CONFIG_PATH_HOST=/var/lib/containers/storage/volumes/$VOL_NAME/_data/networks/$C
 CF_NETWORKS_PATH_CON=$SN_DIR/cli/networks/$CONFIG_FILENAME
 CF_SHARE_PATH_CON=$SN_DIR/share/networks/$CONFIG_FILENAME
 CON_PATH_CON=$SN_DIR/node/node_connection_info.config
+
+usage()
+{
+  echo "Usage: [-u user] container_name"
+  exit
+}
+
+while getopts 'u:?h' c
+do
+  case $c in
+    u) USER=$OPTARG ;;
+    h|?) usage ;;
+  esac
+done
+shift $(($OPTIND - 1))
+
 
 # First argument is root node if empty
 CON_NAME=$1
