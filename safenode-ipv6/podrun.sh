@@ -5,11 +5,7 @@
 CON_NAME=root_node
 IMAGE=safenode:latest
 IMAGE_URL=ghcr.io/safenetwork-community
-<<<<<<< HEAD
 NUM_NODES=1
-=======
-NUM_NODES=2
->>>>>>> 471e143ed59f4dfd89de40befb9f02da9307c259
 NUM_JNODES=$(($NUM_NODES-1))
 
 # error, warn, info, debug, trace
